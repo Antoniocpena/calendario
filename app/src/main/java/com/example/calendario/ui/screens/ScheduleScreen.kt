@@ -1,37 +1,13 @@
 package com.example.calendario.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CalendarMonth
-import androidx.compose.material.icons.rounded.LocationOn
-import androidx.compose.material.icons.rounded.Map
-import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.WarningAmber
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,16 +15,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.calendario.ui.theme.CampusAmber
-import com.example.calendario.ui.theme.CampusAmberStrong
-import com.example.calendario.ui.theme.CampusBlue
-import com.example.calendario.ui.theme.CampusGreen
-import com.example.calendario.ui.theme.CampusLightBlue
-import com.example.calendario.ui.theme.CampusMuted
+import com.example.calendario.ui.theme.*
 
 @Composable
 fun ScheduleScreen(
-    onOpenDetail: () -> Unit
+    onOpenDetail: () -> Unit,
+    onOpenForm: () -> Unit,
 ) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -56,7 +28,6 @@ fun ScheduleScreen(
             ScheduleBottomBar()
         }
     ) { innerPadding ->
-
         Column(
             modifier = Modifier
                 .padding(innerPadding)
@@ -98,23 +69,27 @@ fun ScheduleScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            ScheduleItem(
-                title = "Química Orgánica",
-                place = "Edificio de Ciencias",
-                time = "1:00 PM",
-                accentColor = CampusGreen
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            ScheduleItem(
-                title = "Biología AP",
-                place = "Edificio de Biología",
-                time = "3:30 PM",
-                accentColor = CampusBlue
-            )
+            // 🔹 Usamos mockClases para poblar automáticamente
+            mockClases.forEach { clase ->
+                ScheduleItem(
+                    title = clase.materia.nombre,
+                    place = "${clase.salon.edificio.nombre}, salón ${clase.salon.numero}",
+                    time = "${clase.horaInicio} - ${clase.horaFin}",
+                    accentColor = CampusBlue
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            // 🔹 Botón para abrir el formulario
+            Button(
+                onClick = onOpenForm,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text("Abrir formulario")
+            }
         }
     }
 }
@@ -144,9 +119,7 @@ private fun NextClassCard(
                     tint = CampusAmberStrong,
                     modifier = Modifier.size(18.dp)
                 )
-
                 Spacer(modifier = Modifier.width(7.dp))
-
                 Text(
                     text = "CAMBIO DE AULA",
                     color = CampusAmberStrong,
@@ -169,7 +142,6 @@ private fun NextClassCard(
                         text = "Salón original: Salón 201",
                         style = MaterialTheme.typography.bodyMedium
                     )
-
                     Text(
                         text = "Nuevo salón: Salón 302",
                         fontWeight = FontWeight.Bold,
@@ -239,9 +211,7 @@ private fun ScheduleItem(
                         shape = RoundedCornerShape(4.dp)
                     )
             )
-
             Spacer(modifier = Modifier.width(12.dp))
-
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -249,14 +219,12 @@ private fun ScheduleItem(
                     text = title,
                     fontWeight = FontWeight.SemiBold
                 )
-
                 Text(
                     text = place,
                     color = CampusMuted,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
-
             Text(
                 text = time,
                 style = MaterialTheme.typography.labelMedium
@@ -280,9 +248,7 @@ private fun InformationRow(
             tint = CampusBlue,
             modifier = Modifier.size(17.dp)
         )
-
         Spacer(modifier = Modifier.width(7.dp))
-
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium
@@ -320,7 +286,6 @@ private fun ScheduleBottomBar() {
                 indicatorColor = CampusLightBlue
             )
         )
-
         NavigationBarItem(
             selected = false,
             onClick = {},
@@ -334,7 +299,6 @@ private fun ScheduleBottomBar() {
                 Text(text = "Mapa")
             }
         )
-
         NavigationBarItem(
             selected = false,
             onClick = {},
@@ -348,7 +312,6 @@ private fun ScheduleBottomBar() {
                 Text(text = "Alertas")
             }
         )
-
         NavigationBarItem(
             selected = false,
             onClick = {},

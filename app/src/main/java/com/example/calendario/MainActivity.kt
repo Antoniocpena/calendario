@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.example.calendario.ui.screens.ClassDetailScreen
+import com.example.calendario.ui.screens.FormularioScreen
 import com.example.calendario.ui.screens.ScheduleScreen
 import com.example.calendario.ui.theme.CalendarioTheme
 
@@ -27,12 +28,23 @@ class MainActivity : ComponentActivity() {
                         ScheduleScreen(
                             onOpenDetail = {
                                 currentScreen = AppScreen.DETAIL
+                            },
+                            onOpenForm = {
+                                currentScreen = AppScreen.FORMULARIO
                             }
                         )
                     }
 
                     AppScreen.DETAIL -> {
                         ClassDetailScreen(
+                            onBack = {
+                                currentScreen = AppScreen.SCHEDULE
+                            }
+                        )
+                    }
+
+                    AppScreen.FORMULARIO -> {   // 🔹 NUEVO CASO
+                        FormularioScreen(
                             onBack = {
                                 currentScreen = AppScreen.SCHEDULE
                             }
@@ -46,5 +58,6 @@ class MainActivity : ComponentActivity() {
 
 private enum class AppScreen {
     SCHEDULE,
-    DETAIL
+    DETAIL,
+    FORMULARIO   // 🔹 NUEVO VALOR
 }
