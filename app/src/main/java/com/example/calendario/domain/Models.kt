@@ -2,23 +2,23 @@ package com.example.calendario.domain
 
 data class Edificio(
     val nombre: String,
-    val ubicacion: String
+    val ubicacion: String,
 )
 
 data class Salon(
     val numero: String,
-    val edificio: Edificio
+    val edificio: Edificio,
 )
 
 data class Materia(
     val codigo: String,
     val nombre: String,
-    val siglas: String
+    val siglas: String,
 )
 
 data class Catedratico(
     val nombre: String,
-    val correo: String
+    val correo: String,
 )
 
 data class Clase(
@@ -28,5 +28,5 @@ data class Clase(
     val horaFin: String,
     val materia: Materia,
     val salon: Salon,
-    val catedratico: Catedratico
+    val catedratico: Catedratico,
 )

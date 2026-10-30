@@ -1,63 +1,243 @@
 package com.example.calendario.ui.screens
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
+import androidx.compose.material.icons.rounded.Email
+import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.calendario.domain.Clase
+import com.example.calendario.ui.theme.CampusBlue
+import com.example.calendario.ui.theme.CampusMuted
 
 @Composable
 fun ClassDetailScreen(
     clase: Clase,
-    onBack: () -> Unit
+    onBack: () -> Unit,
 ) {
-    Scaffold { padding ->
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { innerPadding ->
         Column(
             modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(innerPadding)
+                .fillMaxSize(),
         ) {
-            TextButton(onClick = onBack) {
-                Text("Regresar")
+            DetailTopBar(onBack = onBack)
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
+            ) {
+                ClassInformationCard(clase = clase)
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                DestinationCard(clase = clase)
             }
+
+            Button(
+                onClick = {
+                    // Posteriormente abrirá la pantalla del mapa.
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                shape = RoundedCornerShape(10.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.DirectionsWalk,
+                    contentDescription = null,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = "Ver cómo llegar")
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailTopBar(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                contentDescription = "Regresar",
+            )
+        }
+        Text(
+            text = "Detalle de la clase",
+            color = CampusBlue,
+            style = MaterialTheme.typography.titleMedium,
+        )
+    }
+}
+
+@Composable
+private fun ClassInformationCard(clase: Clase) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "${clase.materia.codigo} · ${clase.materia.siglas}",
+                color = CampusBlue,
+                style = MaterialTheme.typography.labelMedium,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = clase.materia.nombre,
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.titleLarge,
             )
 
-            Text(
-                "${clase.materia.codigo} · " +
-                        clase.materia.siglas
+            Spacer(modifier = Modifier.height(14.dp))
+
+            DetailInformationRow(
+                icon = Icons.Rounded.Person,
+                text = clase.catedratico.nombre,
             )
-
-            Text(
-                "${clase.dia}: " +
-                        "${clase.horaInicio} – ${clase.horaFin}"
+            DetailInformationRow(
+                icon = Icons.Rounded.Email,
+                text = clase.catedratico.correo,
             )
-
-            Text(
-                "${clase.salon.edificio.nombre}, " +
-                        "salón ${clase.salon.numero}"
+            DetailInformationRow(
+                icon = Icons.Rounded.Schedule,
+                text = "${clase.dia} · ${clase.horaInicio} - ${clase.horaFin}",
             )
-
-            Text(clase.salon.edificio.ubicacion)
-
-            HorizontalDivider()
-
-            Text(
-                text = "Catedrático",
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Text(clase.catedratico.nombre)
-            Text(clase.catedratico.correo)
         }
+    }
+}
+
+@Composable
+private fun DestinationCard(clase: Clase) {
+    val edificio = clase.salon.edificio
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Rounded.LocationOn,
+                    contentDescription = null,
+                    tint = CampusBlue,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Destino actual",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = edificio.nombre,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = "Salón ${clase.salon.numero}",
+                color = CampusMuted,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                text = edificio.ubicacion,
+                color = CampusMuted,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            MapPlaceholder(edificio = edificio.nombre)
+        }
+    }
+}
+
+@Composable
+private fun MapPlaceholder(edificio: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(130.dp)
+            .background(
+                color = Color(0xFFE8EDF3),
+                shape = RoundedCornerShape(8.dp),
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Rounded.LocationOn,
+                contentDescription = null,
+                tint = CampusBlue,
+                modifier = Modifier.size(38.dp),
+            )
+            Text(
+                text = edificio,
+                color = CampusBlue,
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailInformationRow(icon: ImageVector, text: String) {
+    Row(
+        modifier = Modifier.padding(top = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = CampusBlue,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = text, style = MaterialTheme.typography.bodyMedium)
     }
 }
