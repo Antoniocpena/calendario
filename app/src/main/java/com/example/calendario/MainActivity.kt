@@ -3,13 +3,12 @@ package com.example.calendario
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import com.example.calendario.ui.screens.ClassDetailScreen
-import com.example.calendario.ui.screens.FormularioScreen
-import com.example.calendario.ui.screens.ScheduleScreen
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.calendario.ui.CalendarioViewModel
+import com.example.calendario.ui.screens.*
 import com.example.calendario.ui.theme.CalendarioTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,34 +18,55 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             CalendarioTheme {
-                var currentScreen by remember {
-                    mutableStateOf(AppScreen.SCHEDULE)
+                val vm: CalendarioViewModel = viewModel()
+
+                val state by
+                vm.state.collectAsStateWithLifecycle()
+
+                var formulario by rememberSaveable {
+                    mutableStateOf(false)
                 }
 
-                when (currentScreen) {
-                    AppScreen.SCHEDULE -> {
+                var claseId by rememberSaveable {
+                    mutableStateOf<Int?>(null)
+                }
+
+                val claseSeleccionada =
+                    state.clases.firstOrNull {
+                        it.id == claseId
+                    }
+
+                when {
+                    formulario -> {
+                        FormularioScreen(
+                            vm = vm,
+                            onBack = {
+                                formulario = false
+                            }
+                        )
+                    }
+
+                    claseSeleccionada != null -> {
+                        ClassDetailScreen(
+                            clase = claseSeleccionada,
+                            onBack = {
+                                claseId = null
+                            }
+                        )
+                    }
+
+                    else -> {
                         ScheduleScreen(
+                            clases = state.clases,
+                            mensaje = state.mensaje,
+                            ocupado =
+                                !state.listo || state.ocupado,
+                            onRefresh = vm::cargarClases,
                             onOpenDetail = {
-                                currentScreen = AppScreen.DETAIL
+                                claseId = it
                             },
                             onOpenForm = {
-                                currentScreen = AppScreen.FORMULARIO
-                            }
-                        )
-                    }
-
-                    AppScreen.DETAIL -> {
-                        ClassDetailScreen(
-                            onBack = {
-                                currentScreen = AppScreen.SCHEDULE
-                            }
-                        )
-                    }
-
-                    AppScreen.FORMULARIO -> {   // 🔹 NUEVO CASO
-                        FormularioScreen(
-                            onBack = {
-                                currentScreen = AppScreen.SCHEDULE
+                                formulario = true
                             }
                         )
                     }
@@ -54,10 +74,4 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
-
-private enum class AppScreen {
-    SCHEDULE,
-    DETAIL,
-    FORMULARIO   // 🔹 NUEVO VALOR
 }

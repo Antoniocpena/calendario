@@ -1,4 +1,4 @@
-package com.example.calendario.data
+package com.example.calendario.domain
 
 data class Edificio(
     val nombre: String,
