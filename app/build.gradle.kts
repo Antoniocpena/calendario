@@ -68,6 +68,9 @@ dependencies {
     implementation(
         "androidx.lifecycle:lifecycle-runtime-compose:2.11.0"
     )
+    implementation(
+        "androidx.lifecycle:lifecycle-viewmodel-savedstate:2.11.0"
+    )
 
     implementation(
         platform("com.google.firebase:firebase-bom:34.7.0")

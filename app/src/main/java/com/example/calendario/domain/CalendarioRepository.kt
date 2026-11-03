@@ -18,7 +18,9 @@ interface CalendarioRepository {
 
     suspend fun enviar(registro: Registro): String
 
-    suspend fun leerRegistrosRemotos(): List<Registro>
+    suspend fun leerRegistrosRemotos(): Lectura<List<Registro>>
 
-    suspend fun leerClases(): List<Clase>
+    suspend fun leerClases(): Lectura<List<Clase>>
+
+    suspend fun leerClase(classId: Int): Lectura<Clase?>
 }

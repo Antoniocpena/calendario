@@ -42,6 +42,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.calendario.domain.Clase
+import com.example.calendario.ui.components.CacheNotice
+import com.example.calendario.ui.components.EmptyView
+import com.example.calendario.ui.components.ErrorView
+import com.example.calendario.ui.state.UiState
 import com.example.calendario.ui.theme.CampusAmber
 import com.example.calendario.ui.theme.CampusAmberStrong
 import com.example.calendario.ui.theme.CampusBlue
@@ -50,17 +54,20 @@ import com.example.calendario.ui.theme.CampusMuted
 
 @Composable
 fun ScheduleScreen(
-    clases: List<Clase>,
-    mensaje: String,
-    ocupado: Boolean,
+    state: UiState<List<Clase>>,
     onRefresh: () -> Unit,
     onOpenDetail: (Int) -> Unit,
     onOpenForm: () -> Unit,
 ) {
+    val clases = when (state) {
+        is UiState.Success -> state.data
+        else -> emptyList()
+    }
+    val ocupado = state is UiState.Loading
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            ScheduleBottomBar()
+            ScheduleBottomBar(onOpenForm = onOpenForm)
         },
     ) { innerPadding ->
         Column(
@@ -99,7 +106,7 @@ fun ScheduleScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp),
             ) {
-                Text("Actualizar desde Firestore")
+                Text("Actualizar horario")
             }
 
             if (ocupado) {
@@ -109,33 +116,14 @@ fun ScheduleScreen(
                 )
             }
 
-            if (mensaje.isNotBlank()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = mensaje,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-
-            if (clases.isEmpty() && !ocupado) {
-                Spacer(modifier = Modifier.height(24.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                    ) {
-                        Text(
-                            text = "No hay clases cargadas",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Pulsa Actualizar desde Firestore con conexión.",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
+            when (state) {
+                is UiState.Error -> ErrorView(state.message, onRefresh, Modifier.fillMaxWidth())
+                is UiState.Empty -> {
+                    if (state.desdeCache) CacheNotice()
+                    EmptyView(modifier = Modifier.fillMaxWidth(), onRetry = onRefresh)
                 }
+                is UiState.Success -> if (state.desdeCache) CacheNotice()
+                UiState.Loading -> Unit
             }
 
             val claseDestacada = clases.firstOrNull()
@@ -366,7 +354,7 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun ScheduleBottomBar() {
+private fun ScheduleBottomBar(onOpenForm: () -> Unit) {
     NavigationBar(
         containerColor = Color.White,
     ) {
@@ -389,6 +377,7 @@ private fun ScheduleBottomBar() {
         NavigationBarItem(
             selected = false,
             onClick = {},
+            enabled = false,
             icon = {
                 Icon(
                     imageVector = Icons.Rounded.Map,
@@ -402,6 +391,7 @@ private fun ScheduleBottomBar() {
         NavigationBarItem(
             selected = false,
             onClick = {},
+            enabled = false,
             icon = {
                 Icon(
                     imageVector = Icons.Rounded.Notifications,
@@ -414,7 +404,7 @@ private fun ScheduleBottomBar() {
         )
         NavigationBarItem(
             selected = false,
-            onClick = {},
+            onClick = onOpenForm,
             icon = {
                 Icon(
                     imageVector = Icons.Rounded.Person,

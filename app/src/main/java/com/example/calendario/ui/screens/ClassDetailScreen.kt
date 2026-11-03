@@ -37,12 +37,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.calendario.domain.Clase
+import com.example.calendario.ui.components.CacheNotice
+import com.example.calendario.ui.components.EmptyView
+import com.example.calendario.ui.components.ErrorView
+import com.example.calendario.ui.components.LoadingView
+import com.example.calendario.ui.state.UiState
 import com.example.calendario.ui.theme.CampusBlue
 import com.example.calendario.ui.theme.CampusMuted
 
 @Composable
 fun ClassDetailScreen(
-    clase: Clase,
+    state: UiState<Clase>,
+    onRetry: () -> Unit,
     onBack: () -> Unit,
 ) {
     Scaffold(
@@ -55,34 +61,46 @@ fun ClassDetailScreen(
         ) {
             DetailTopBar(onBack = onBack)
 
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(20.dp),
-            ) {
-                ClassInformationCard(clase = clase)
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                DestinationCard(clase = clase)
-            }
-
-            Button(
-                onClick = {
-                    // Posteriormente abrirá la pantalla del mapa.
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                shape = RoundedCornerShape(10.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.DirectionsWalk,
-                    contentDescription = null,
+            when (state) {
+                UiState.Loading -> LoadingView(modifier = Modifier.weight(1f).fillMaxWidth())
+                is UiState.Error -> ErrorView(state.message, onRetry, Modifier.weight(1f).fillMaxWidth())
+                is UiState.Empty -> EmptyView(
+                    message = "La clase no está disponible.",
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    onRetry = onRetry,
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Ver cómo llegar")
+                is UiState.Success -> {
+                    val clase = state.data
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                            .padding(20.dp),
+                    ) {
+                        if (state.desdeCache) CacheNotice()
+                        ClassInformationCard(clase = clase)
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        DestinationCard(clase = clase)
+                    }
+
+                    Button(
+                        onClick = {},
+                        enabled = false,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.DirectionsWalk,
+                            contentDescription = null,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "Ver cómo llegar")
+                    }
+                }
             }
         }
     }

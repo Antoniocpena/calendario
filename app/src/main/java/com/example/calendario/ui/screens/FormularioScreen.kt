@@ -1,6 +1,5 @@
 package com.example.calendario.ui.screens
 
-import android.util.Patterns
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,30 +24,36 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.calendario.ui.CalendarioViewModel
+import com.example.calendario.ui.components.CacheNotice
+import com.example.calendario.ui.components.ErrorView
+import com.example.calendario.ui.state.FormularioUiState
+import com.example.calendario.ui.state.UiState
 import com.example.calendario.ui.theme.CampusBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FormularioScreen(
-    vm: CalendarioViewModel,
+    state: FormularioUiState,
+    onEdit: (String, String, String) -> Unit,
+    onSaveDraft: () -> Unit,
+    onSend: () -> Unit,
+    onRetryOperation: () -> Unit,
+    onRetryDraft: () -> Unit,
+    onRetryHistory: () -> Unit,
+    onLoadRecords: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val state by vm.state.collectAsStateWithLifecycle()
-    val historial by vm.historial.collectAsStateWithLifecycle()
     val registro = state.registro
-    val habilitado = state.listo && !state.ocupado
+    val habilitado = state.habilitado
 
     val isNombreValid =
         registro.nombre.isNotBlank() && registro.nombre.length <= 120
     val isCorreoValid =
         registro.correo.length <= 254 &&
-            Patterns.EMAIL_ADDRESS.matcher(registro.correo).matches()
-    val isCodigoValid = registro.codigo.length in 5..40
+            Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$").matches(registro.correo)
+    val isCodigoValid = registro.codigo.length in 3..40
     val isValid = isNombreValid && isCorreoValid && isCodigoValid &&
         runCatching { registro.validar() }.isSuccess
 
@@ -62,7 +67,7 @@ fun FormularioScreen(
                 navigationIcon = {
                     IconButton(
                         onClick = onBack,
-                        enabled = !state.ocupado,
+                        enabled = state.operacion !is UiState.Loading,
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -84,11 +89,7 @@ fun FormularioScreen(
             OutlinedTextField(
                 value = registro.nombre,
                 onValueChange = {
-                    vm.editar(
-                        nombre = it,
-                        correo = registro.correo,
-                        codigo = registro.codigo,
-                    )
+                    onEdit(it, registro.correo, registro.codigo)
                 },
                 label = { Text("Nombre") },
                 enabled = habilitado,
@@ -106,11 +107,7 @@ fun FormularioScreen(
             OutlinedTextField(
                 value = registro.correo,
                 onValueChange = {
-                    vm.editar(
-                        nombre = registro.nombre,
-                        correo = it,
-                        codigo = registro.codigo,
-                    )
+                    onEdit(registro.nombre, it, registro.codigo)
                 },
                 label = { Text("Correo") },
                 enabled = habilitado,
@@ -128,11 +125,7 @@ fun FormularioScreen(
             OutlinedTextField(
                 value = registro.codigo,
                 onValueChange = {
-                    vm.editar(
-                        nombre = registro.nombre,
-                        correo = registro.correo,
-                        codigo = it,
-                    )
+                    onEdit(registro.nombre, registro.correo, it)
                 },
                 label = { Text("Código de estudiante") },
                 enabled = habilitado,
@@ -142,7 +135,7 @@ fun FormularioScreen(
 
             if (!isCodigoValid && registro.codigo.isNotEmpty()) {
                 Text(
-                    text = "El código debe tener entre 5 y 40 caracteres.",
+                    text = "El código debe tener entre 3 y 40 caracteres.",
                     color = MaterialTheme.colorScheme.error,
                 )
             }
@@ -153,52 +146,59 @@ fun FormularioScreen(
             )
 
             OutlinedButton(
-                onClick = vm::guardarBorrador,
+                onClick = onSaveDraft,
                 enabled = habilitado,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp),
             ) {
-                Text("Guardar borrador en Room")
+                Text("Guardar borrador")
             }
 
             Button(
-                onClick = vm::enviar,
+                onClick = onSend,
                 enabled = habilitado && isValid,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp),
             ) {
-                Text("Enviar a Firebase")
+                Text("Enviar registro")
             }
 
-            if (!state.listo || state.ocupado) {
+            if (state.borrador is UiState.Loading || state.operacion is UiState.Loading) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
 
-            if (state.mensaje.isNotBlank()) {
-                Text(state.mensaje)
+            val borrador = state.borrador
+            if (borrador is UiState.Error) {
+                ErrorView(borrador.message, onRetryDraft, Modifier.fillMaxWidth())
+            }
+            when (val operacion = state.operacion) {
+                is UiState.Error -> ErrorView(operacion.message, onRetryOperation, Modifier.fillMaxWidth())
+                is UiState.Success -> Text(operacion.data)
+                else -> Unit
             }
 
             HorizontalDivider()
 
             Text(
-                text = "Historial local — Room",
+                text = "Historial local",
                 style = MaterialTheme.typography.titleMedium,
             )
 
-            if (historial.isEmpty()) {
-                Text("Aún no hay envíos confirmados.")
-            }
-
-            historial.forEach { envio ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Text(envio.registro.nombre)
-                        Text(envio.registro.correo)
-                        Text(envio.registro.codigo)
-                        Text("Documento: ${envio.rutaFirebase}")
+            when (val historial = state.historial) {
+                UiState.Loading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                is UiState.Error -> ErrorView(historial.message, onRetryHistory, Modifier.fillMaxWidth())
+                is UiState.Empty -> Text("Aún no hay envíos confirmados.")
+                is UiState.Success -> historial.data.forEach { envio ->
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(envio.registro.nombre)
+                            Text(envio.registro.correo)
+                            Text(envio.registro.codigo)
+                            Text("Documento: ${envio.rutaFirebase}")
+                        }
                     }
                 }
             }
@@ -206,24 +206,35 @@ fun FormularioScreen(
             HorizontalDivider()
 
             OutlinedButton(
-                onClick = vm::cargarRegistros,
-                enabled = habilitado,
+                onClick = onLoadRecords,
+                enabled = state.registros !is UiState.Loading,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp),
             ) {
-                Text("Leer mis documentos de Firebase")
+                Text("Consultar mis registros")
             }
 
-            state.remotos.forEach { remoto ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Text("ID: ${remoto.id}")
-                        Text(remoto.nombre)
-                        Text(remoto.correo)
-                        Text(remoto.codigo)
+            when (val registros = state.registros) {
+                UiState.Loading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                is UiState.Error -> ErrorView(registros.message, onLoadRecords, Modifier.fillMaxWidth())
+                is UiState.Empty -> {
+                    if (registros.desdeCache) CacheNotice()
+                    Text("No hay registros para mostrar. Pulsa Consultar mis registros para actualizar.")
+                }
+                is UiState.Success -> {
+                    if (registros.desdeCache) CacheNotice()
+                    registros.data.forEach { remoto ->
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Text("ID: ${remoto.id}")
+                                Text(remoto.nombre)
+                                Text(remoto.correo)
+                                Text(remoto.codigo)
+                            }
+                        }
                     }
                 }
             }

@@ -4,8 +4,11 @@ import androidx.room.withTransaction
 import com.example.calendario.data.local.*
 import com.example.calendario.data.remote.*
 import com.example.calendario.domain.*
+import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -68,7 +71,7 @@ class DefaultCalendarioRepository(
     override suspend fun enviar(registro: Registro): String {
         registro.validar()
 
-        guardarBorrador(registro)
+        withTimeout(5_000) { guardarBorrador(registro) }
 
         val ruta = withTimeout(20_000) {
             val referencia = firestore
@@ -98,46 +101,89 @@ class DefaultCalendarioRepository(
             referencia.path
         }
 
-        db.withTransaction {
-            db.dao().guardarHistorial(
-                HistorialEntity(
-                    id = registro.id,
-                    nombre = registro.nombre,
-                    correo = registro.correo,
-                    codigo = registro.codigo,
-                    rutaFirebase = ruta,
-                    confirmadoEn = System.currentTimeMillis()
+        withTimeout(5_000) {
+            db.withTransaction {
+                db.dao().guardarHistorial(
+                    HistorialEntity(
+                        id = registro.id,
+                        nombre = registro.nombre,
+                        correo = registro.correo,
+                        codigo = registro.codigo,
+                        rutaFirebase = ruta,
+                        confirmadoEn = System.currentTimeMillis()
+                    )
                 )
-            )
 
-            db.dao().eliminarBorrador()
+                db.dao().eliminarBorrador()
+            }
         }
 
         return ruta
     }
 
-    override suspend fun leerRegistrosRemotos(): List<Registro> =
-        withTimeout(20_000) {
+    override suspend fun leerRegistrosRemotos(): Lectura<List<Registro>> =
+        leerConCache(hayDatos = { it.isNotEmpty() }) { source ->
+            val uid = if (source == Source.CACHE) {
+                auth.currentUser?.uid ?: error("No hay una sesión guardada para consultar sin conexión.")
+            } else {
+                obtenerUid()
+            }
             firestore
                 .collection("usuarios")
-                .document(obtenerUid())
+                .document(uid)
                 .collection("registros")
-                .get(Source.SERVER)
+                .get(source)
                 .await()
                 .documents
                 .map { it.toRegistro() }
         }
 
-    override suspend fun leerClases(): List<Clase> =
-        withTimeout(20_000) {
-            obtenerUid()
+    override suspend fun leerClases(): Lectura<List<Clase>> =
+        leerConCache(hayDatos = { it.isNotEmpty() }) { source ->
+            if (source == Source.SERVER) obtenerUid()
 
             firestore
                 .collection("clases")
-                .get(Source.SERVER)
+                .get(source)
                 .await()
                 .documents
                 .map { it.toClase() }
                 .sortedBy { it.id }
         }
+
+    override suspend fun leerClase(classId: Int): Lectura<Clase?> =
+        leerConCache(hayDatos = { it != null }) { source ->
+            if (source == Source.SERVER) obtenerUid()
+            val documento = firestore.collection("clases")
+                .document(classId.toString())
+                .get(source)
+                .await()
+            if (documento.exists()) documento.toClase() else null
+        }
+
+    private suspend fun <T> leerConCache(
+        hayDatos: (T) -> Boolean,
+        consulta: suspend (Source) -> T,
+    ): Lectura<T> {
+        try {
+            return Lectura(withTimeout(10_000) { consulta(Source.SERVER) })
+        } catch (e: TimeoutCancellationException) {
+            // El límite de red deja tiempo para consultar la copia local.
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val problemaDeConexion = e is FirebaseNetworkException ||
+                (e is FirebaseFirestoreException && e.code in setOf(
+                    FirebaseFirestoreException.Code.UNAVAILABLE,
+                    FirebaseFirestoreException.Code.DEADLINE_EXCEEDED,
+                ))
+            if (!problemaDeConexion) throw e
+        }
+
+        val datos = withTimeout(4_000) { consulta(Source.CACHE) }
+        check(hayDatos(datos)) {
+            "Sin conexión y sin datos guardados. Conéctate y reintenta."
+        }
+        return Lectura(datos, desdeCache = true)
+    }
 }
