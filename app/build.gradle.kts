@@ -4,8 +4,10 @@ plugins {
 }
 
 // La maqueta funciona sin Firebase. Al agregar google-services.json, sincroniza y recompila.
+// Crashlytics se inicializa automáticamente con Firebase al arrancar la app.
 if (file("google-services.json").isFile) {
     apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
 }
 
 android {
@@ -43,6 +45,7 @@ android {
 dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.crashlytics)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
