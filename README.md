@@ -79,4 +79,3 @@ Balanceados
 
 ## Licencia
 
-Pendiente de definir.
