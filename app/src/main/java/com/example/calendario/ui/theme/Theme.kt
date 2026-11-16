@@ -25,7 +25,7 @@ private val CampusColorScheme = lightColorScheme(
 )
 
 @Composable
-fun CalendarioTheme(
+fun CalendarTheme(
     content: @Composable () -> Unit
 ) {
     MaterialTheme(

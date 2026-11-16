@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function validAlert() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['title', 'message', 'course', 'previousRoom', 'newRoom', 'building', 'authorId', 'active', 'publishedAt'])
+        && data.keys().hasOnly(['title', 'message', 'course', 'previousRoom', 'newRoom', 'building', 'authorId', 'active', 'publishedAt'])
+        && data.title is string && data.title.size() >= 3 && data.title.size() <= 100
+        && data.message is string && data.message.size() >= 10 && data.message.size() <= 1000
+        && data.course is string && data.course.size() >= 2 && data.course.size() <= 100
+        && data.previousRoom is string && data.previousRoom.size() <= 100
+        && data.newRoom is string && data.newRoom.size() <= 100
+        && data.building is string && data.building.size() <= 100
+        && data.authorId is string && data.active is bool && data.publishedAt is timestamp
+        && ((data.previousRoom == '' && data.newRoom == '')
+          || (data.previousRoom != '' && data.newRoom != '' && data.building != ''));
+    }
+    match /alerts/{alertId} {
+      allow read: if resource.data.active == true;
+      allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid && validAlert();
+      allow update: if request.auth != null && resource.data.authorId == request.auth.uid
+        && request.resource.data.authorId == resource.data.authorId && validAlert();
+      allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+    }
+  }
+}
