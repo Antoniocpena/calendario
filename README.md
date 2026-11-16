@@ -76,6 +76,3 @@ Para recibir alertas reales desde Firestore:
 ## Equipo
 
 Balanceados
-
-## Licencia
-
