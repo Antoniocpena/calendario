@@ -43,10 +43,14 @@ import com.example.calendario.ui.theme.CampusAmber
 import com.example.calendario.ui.theme.CampusAmberStrong
 import com.example.calendario.ui.theme.CampusBlue
 import com.example.calendario.ui.theme.CampusMuted
+import com.example.calendario.data.CampusAlert
 
 @Composable
 fun ClassDetailScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onOpenMap: () -> Unit,
+    classroomAlert: CampusAlert,
+    showClassroomAlert: Boolean
 ) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -65,21 +69,21 @@ fun ClassDetailScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(20.dp)
             ) {
-                ClassInformationCard()
+                ClassInformationCard(classroomAlert)
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                ClassroomChangeCard()
+                if (showClassroomAlert) {
+                    ClassroomChangeCard(classroomAlert)
+                }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                DestinationCard()
+                DestinationCard(classroomAlert)
             }
 
             Button(
-                onClick = {
-                    // Posteriormente abrirá la pantalla del mapa
-                },
+                onClick = onOpenMap,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(20.dp),
@@ -128,7 +132,7 @@ private fun DetailTopBar(
 }
 
 @Composable
-private fun ClassInformationCard() {
+private fun ClassInformationCard(classroomAlert: CampusAlert) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -150,7 +154,7 @@ private fun ClassInformationCard() {
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "CÁLCULO II",
+                text = classroomAlert.course,
                 style = MaterialTheme.typography.titleLarge
             )
 
@@ -170,7 +174,7 @@ private fun ClassInformationCard() {
 }
 
 @Composable
-private fun ClassroomChangeCard() {
+private fun ClassroomChangeCard(classroomAlert: CampusAlert) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = CampusAmber,
@@ -193,13 +197,13 @@ private fun ClassroomChangeCard() {
 
                 Column {
                     Text(
-                        text = "Importante: Esta clase cambió de salón",
+                        text = classroomAlert.title,
                         fontWeight = FontWeight.SemiBold,
                         style = MaterialTheme.typography.bodyMedium
                     )
 
                     Text(
-                        text = "Por favor, dirígete a la nueva ubicación indicada abajo.",
+                        text = classroomAlert.message,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -221,7 +225,7 @@ private fun ClassroomChangeCard() {
                 ) {
                     RoomInformation(
                         label = "Aula anterior",
-                        room = "Salón 105"
+                        room = classroomAlert.previousRoom
                     )
 
                     Icon(
@@ -232,7 +236,7 @@ private fun ClassroomChangeCard() {
 
                     RoomInformation(
                         label = "Nuevo salón",
-                        room = "Salón 302"
+                        room = classroomAlert.newRoom
                     )
                 }
             }
@@ -241,7 +245,7 @@ private fun ClassroomChangeCard() {
 }
 
 @Composable
-private fun DestinationCard() {
+private fun DestinationCard(classroomAlert: CampusAlert) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -274,25 +278,25 @@ private fun DestinationCard() {
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "Edificio de Ingeniería",
+                text = classroomAlert.building,
                 fontWeight = FontWeight.SemiBold
             )
 
             Text(
-                text = "Salón 302, 3er piso",
+                text = classroomAlert.newRoom,
                 color = CampusMuted,
                 style = MaterialTheme.typography.bodyMedium
             )
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            MapPlaceholder()
+            MapPlaceholder(classroomAlert)
         }
     }
 }
 
 @Composable
-private fun MapPlaceholder() {
+private fun MapPlaceholder(classroomAlert: CampusAlert) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -314,7 +318,7 @@ private fun MapPlaceholder() {
             )
 
             Text(
-                text = "Edificio de Ingeniería",
+                text = classroomAlert.building,
                 color = CampusBlue,
                 style = MaterialTheme.typography.labelLarge
             )
