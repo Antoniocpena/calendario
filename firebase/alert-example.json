@@ -1,0 +1,9 @@
+{
+  "title": "Cambio de aula",
+  "message": "La clase de Cálculo II se traslada al salón 302. Dirígete al nuevo salón.",
+  "course": "Cálculo II",
+  "previousRoom": "Salón 105",
+  "newRoom": "Salón 302",
+  "building": "Edificio de Ingeniería",
+  "active": true
+}
