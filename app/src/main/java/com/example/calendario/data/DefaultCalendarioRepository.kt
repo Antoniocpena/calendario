@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.example.calendario.data.local.*
 import com.example.calendario.data.remote.*
 import com.example.calendario.domain.*
+import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.*
@@ -19,11 +20,18 @@ class DefaultCalendarioRepository(
     private val db: CalendarioDatabase
 ) : CalendarioRepository {
 
+    private val firebaseApp: FirebaseApp
+        get() = try {
+            FirebaseApp.getInstance()
+        } catch (e: IllegalStateException) {
+            error("Firebase no está configurado. Agrega app/google-services.json y vuelve a compilar.")
+        }
+
     private val firestore
-        get() = FirebaseFirestore.getInstance()
+        get() = FirebaseFirestore.getInstance(firebaseApp)
 
     private val auth
-        get() = FirebaseAuth.getInstance()
+        get() = FirebaseAuth.getInstance(firebaseApp)
 
     private val authMutex = Mutex()
 

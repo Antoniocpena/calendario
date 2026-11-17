@@ -1,78 +1,82 @@
 # Calendario Campus
 
-Aplicación Android para consultar el horario de clases del día y recibir avisos en tiempo real cuando cambia el salón de una clase. Desarrollada con Kotlin y Jetpack Compose, con Firebase Firestore como fuente de las alertas.
+Aplicación Android en Kotlin y Jetpack Compose para consultar clases y registrar datos de estudiantes. Proyecto del curso Desarrollo de Aplicaciones Móviles, entrega final. Equipo: Balanceados.
 
-Proyecto del curso Desarrollo de Aplicaciones Móviles, entrega final. Equipo: Balanceados.
+## Funciones disponibles
 
-## Características
+* Horario y detalle de clases consultados desde Firebase Firestore.
+* Formulario con validación de nombre, correo y código de estudiante.
+* Borrador e historial de envíos confirmados guardados en Room.
+* Envío de registros con autenticación anónima, confirmación de lectura desde el servidor y reintentos.
+* Consulta de registros del usuario y recuperación de datos de Firestore desde caché cuando falla la conexión.
+* Navegación entre horario, detalle y formulario, conservando los campos al recrear la pantalla.
 
-* Inicio de sesión como puerta de entrada a la app.
-* Horario del día: muestra la próxima clase y la lista de clases siguientes con su ubicación y hora.
-* Detalle de la clase: curso, docente, horario, edificio y salón actual.
-* Alertas de cambio de salón: resalta el salón original y el nuevo salón, tanto en el horario como en el detalle.
-* Mapa del campus: acceso directo desde el detalle con el botón "Ver cómo llegar".
-* Pantalla de alertas: feed de avisos sincronizado con Firestore, con opción de reintentar si falla la conexión.
-* Navegación inferior entre Horario, Mapa y Alertas, con soporte del botón atrás.
-* Modo maqueta: la app funciona sin Firebase usando una alerta de ejemplo (`scheduleClassroomAlert`).
+Los accesos a Mapa, Alertas y "Ver cómo llegar" son elementos pendientes y actualmente están deshabilitados.
 
-## Tecnologías
+## Requisitos
 
-* Kotlin 2.2.10
-* Jetpack Compose con Material 3 (BOM 2026.02.01)
-* Firebase Firestore (BOM 35.2.0)
-* Gradle 9.5.0 y Android Gradle Plugin 9.3.3
-* minSdk 24, targetSdk 37, compileSdk 37
+* Android Studio compatible con Android Gradle Plugin 9.3.3.
+* JDK 25; el proyecto incluye la configuración para descargarlo mediante Gradle.
+* Android SDK 37.
+* Emulador o dispositivo con Android 7.0 (API 24) o superior.
 
-## Estructura del proyecto
+El proyecto usa Gradle 9.5.0, Jetpack Compose, Navigation, Room 2.8.5 y Firebase BOM 34.7.0. Las dependencias se declaran en `app/build.gradle.kts` y `gradle/libs.versions.toml`.
 
-```
-calendario/
-├── app/
-│   └── src/main/java/com/example/calendario/
-│       ├── MainActivity.kt          # Punto de entrada, login y navegación
-│       ├── data/                    # AlertsRepository, CampusAlert, AlertFeedState
-│       └── ui/
-│           ├── components/          # CampusBottomBar, CampusTab
-│           ├── screens/             # Login, Horario, Detalle, Mapa y Alertas
-│           └── theme/               # Color.kt, Type.kt, Theme.kt
-├── gradle/libs.versions.toml        # Catálogo de versiones
-├── build.gradle.kts
-└── settings.gradle.kts
+## Ejecución
+
+1. Abre esta carpeta en Android Studio.
+2. Instala el SDK solicitado y espera a que termine la sincronización de Gradle.
+3. Selecciona un dispositivo y ejecuta la configuración `app`.
+
+Desde PowerShell en la carpeta del proyecto:
+
+```powershell
+.\gradlew.bat :app:assembleDebug
+.\gradlew.bat :app:installDebug
 ```
 
-## Cómo ejecutarlo
+El APK se genera en `app/build/outputs/apk/debug/app-debug.apk`.
 
-Requisitos:
+## Firebase
 
-* Android Studio reciente, compatible con AGP 9.3.x
-* JDK 25 (Gradle puede descargarlo automáticamente)
-* Un emulador o dispositivo con Android 7.0 (API 24) o superior
+La configuración Android se carga desde `app/google-services.json`, con el identificador de aplicación `com.example.calendario`.
 
-Pasos:
+Para usar un proyecto Firebase propio:
 
-1. Clona el repositorio: `git clone <URL-DEL-REPOSITORIO>`
-2. Abre la carpeta en Android Studio y espera a que termine la sincronización de Gradle.
-3. Selecciona un emulador o dispositivo.
-4. Presiona Run, o ejecuta `./gradlew installDebug` desde la terminal.
+1. Registra la aplicación Android y coloca su archivo `google-services.json` en `app/`.
+2. Habilita Authentication con el proveedor Anónimo.
+3. Crea Cloud Firestore y configura reglas que permitan las lecturas necesarias y limiten los registros de cada usuario a su UID autenticado.
+4. Carga los documentos de clases y vuelve a compilar.
 
-La app compila y corre sin configuración adicional en modo maqueta.
+Colecciones utilizadas:
 
-## Configuración de Firebase (opcional)
+* `clases/{classId}`: el ID debe ser un entero. Campos: `dia`, `horaInicio`, `horaFin`; objetos `materia` (`codigo`, `nombre`, `siglas`), `salon` (`numero`, `edificio` con `nombre` y `ubicacion`) y `catedratico` (`nombre`, `correo`). Todos esos valores deben ser cadenas no vacías.
+* `usuarios/{uid}/registros/{registroId}`: campos `nombre`, `correo`, `codigo` y `actualizadoEn`.
 
-Para recibir alertas reales desde Firestore:
+Sin `google-services.json`, la aplicación compila y permite trabajar con los borradores y el historial local. Las operaciones remotas muestran un error de configuración; no se generan datos de ejemplo ni se simulan confirmaciones de envío. La caché de Firestore requiere haber descargado los datos previamente.
 
-1. Crea un proyecto en la consola de Firebase y habilita Cloud Firestore.
-2. Registra una app Android con el package name `com.example.calendario`.
-3. Descarga `google-services.json` y colócalo en la carpeta `app/`.
-4. Sincroniza Gradle y vuelve a compilar. El plugin `google-services` se aplica automáticamente cuando el archivo existe.
+## Estructura
 
-## Pruebas
-
+```text
+app/src/main/java/com/example/calendario/
+├── CalendarioApplication.kt    # Contenedor y repositorio compartido
+├── MainActivity.kt             # Punto de entrada
+├── data/                       # Repositorio, Room y conversión de Firestore
+├── domain/                     # Modelos y contrato del repositorio
+├── navigation/                 # Rutas y navegación Compose
+└── ui/
+    ├── components/             # Carga, errores y avisos de caché
+    ├── screens/                # Horario, detalle y formulario
+    ├── state/                  # Estados de pantalla
+    ├── viewmodel/              # Consultas, borradores y envíos
+    └── theme/                  # Tema visual
 ```
-./gradlew test                    # Pruebas unitarias
-./gradlew connectedAndroidTest    # Pruebas instrumentadas (requiere dispositivo o emulador)
+
+## Verificación
+
+```powershell
+.\gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+.\gradlew.bat :app:connectedDebugAndroidTest
 ```
 
-## Equipo
-
-Balanceados
+Las pruebas unitarias cubren reintentos, recuperación de borradores, restauración de campos, envíos duplicados, tiempos de espera y datos de caché. Las pruebas instrumentadas comprueban la navegación y la persistencia de Room; requieren un dispositivo conectado. Las pruebas de navegación utilizan un repositorio de prueba y no envían registros a Firebase.

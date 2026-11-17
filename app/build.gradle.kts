@@ -3,7 +3,10 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 
     id("com.google.devtools.ksp")
-    id("com.google.gms.google-services")
+}
+
+if (file("google-services.json").isFile) {
+    apply(plugin = "com.google.gms.google-services")
 }
 
 android {
@@ -87,6 +90,7 @@ dependencies {
     ksp("androidx.room:room-compiler:2.8.5")
 
     testImplementation(libs.junit)
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 
     androidTestImplementation(
         platform(libs.androidx.compose.bom)
